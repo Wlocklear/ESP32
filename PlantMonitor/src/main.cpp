@@ -84,11 +84,21 @@
 // ============================================================
 //  PIN DEFINITIONS
 // ============================================================
-#define DHTPIN        4    // DHT22 data pin
-#define SDA_PIN       8    // I2C SDA (AHT30)
-#define SCL_PIN       9    // I2C SCL (AHT30)
-#define MOISTURE_PIN  10   // Capacitive soil — ADC1 ONLY on ESP32-S3
-#define PUMP_PIN      2    // Pump relay signal
+#ifdef XIAO_C6
+  // Seeed XIAO ESP32-C6
+  #define SDA_PIN       22   // D4
+  #define SCL_PIN       23   // D5
+  #define MOISTURE_PIN  0    // A0 — ADC1
+  #define PUMP_PIN      18   // D10
+#else
+  // ESP32-S3-N16R8 (default)
+  #define SDA_PIN       8
+  #define SCL_PIN       9
+  #define MOISTURE_PIN  10   // ADC1
+  #define PUMP_PIN      2
+#endif
+
+#define DHTPIN        4    // DHT22 data pin (unused with AHT30)
 
 #define PUMP_ON   HIGH     // Change to LOW if relay is active-low
 #define PUMP_OFF  LOW
@@ -426,11 +436,19 @@ void setupPowerManagement() {
   // Enable automatic CPU light sleep
   // max_freq_mhz / min_freq_mhz: CPU scales between these under load.
   // light_sleep_enable: CPU enters light sleep when FreeRTOS is idle.
+#ifdef XIAO_C6
   esp_pm_config_t pm_cfg = {
-    .max_freq_mhz       = 240,   // Full speed when active
+    .max_freq_mhz       = 160,   // ESP32-C6 max is 160 MHz
     .min_freq_mhz       = 40,    // Scale down when idle (saves power, stays awake)
     .light_sleep_enable = true   // Auto light sleep when nothing is running
   };
+#else
+  esp_pm_config_t pm_cfg = {
+    .max_freq_mhz       = 240,   // Full speed when active (ESP32-S3)
+    .min_freq_mhz       = 40,    // Scale down when idle (saves power, stays awake)
+    .light_sleep_enable = true   // Auto light sleep when nothing is running
+  };
+#endif
   esp_err_t err = esp_pm_configure(&pm_cfg);
   if (err == ESP_OK) {
     Serial.println("[Power] Automatic light sleep enabled (modem + CPU)");
